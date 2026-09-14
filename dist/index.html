@@ -4285,6 +4285,12 @@
       if (selectedSubject !== "all") {
         scoreHeaders = getScoreHeaders(activeHeaders);
       }
+
+      let collectMaxSum = 0;
+      if (scoreHeaders.length > 0) {
+        collectMaxSum = scoreHeaders.reduce((sum, sh) => sum + parseMaxScore(sh), 0);
+      }
+      const collectHeaderTitle = collectMaxSum > 0 ? `คะแนนเก็บรวม (${collectMaxSum})` : "คะแนนเก็บรวม";
       
       let headerHtml = `
         <th>รหัสประจำตัว</th>
@@ -4297,6 +4303,7 @@
         headerHtml += `<th class="header-editable" onclick="makeHeaderEditable(this, '${sh}')" title="คลิกเพื่อเปลี่ยนชื่อกิจกรรม/คะแนนเต็ม">${sh}</th>`;
       });
       headerHtml += `
+        <th style="background: rgba(59, 130, 246, 0.08); color: var(--primary); font-weight: 700;">${collectHeaderTitle}</th>
         <th>กลางภาค (20)</th>
         <th>ปลายภาค (20)</th>
         <th>รวม (100)</th>
@@ -4311,7 +4318,7 @@
       body.innerHTML = "";
 
       if (filteredData.length === 0) {
-        body.innerHTML = `<tr><td colspan="${11 + scoreHeaders.length}" style="text-align: center; color: var(--text-muted); padding: 30px;">ไม่มีนักเรียนที่ตรงกับตัวเลือกการกรองข้อมูล</td></tr>`;
+        body.innerHTML = `<tr><td colspan="${12 + scoreHeaders.length}" style="text-align: center; color: var(--text-muted); padding: 30px;">ไม่มีนักเรียนที่ตรงกับตัวเลือกการกรองข้อมูล</td></tr>`;
         return;
       }
 
@@ -4350,8 +4357,9 @@
           `;
         });
 
-        // Midterm & Final score columns
+        // Collect Total, Midterm & Final score columns
         rowHtml += `
+          <td class="font-bold text-primary" style="text-align: center; background: rgba(59, 130, 246, 0.04);">${calc.collectTotal}</td>
           <td class="cell-editable" data-student-id="${st.student_id}" data-key="midterm_score" onclick="makeCellEditable(this, '${st.student_id}', '${st.subject_code}', 'midterm_score', 20)">
             ${(st.midterm_score !== undefined && st.midterm_score !== null && st.midterm_score !== "") ? st.midterm_score : "-"}
           </td>
@@ -5675,7 +5683,7 @@
       if (!subjectName) subjectName = subject;
 
       // Calculate dynamic font size and padding based on number of columns to fit A4 perfectly
-      const totalCols = 3 + scoreHeaders.length + 4; 
+      const totalCols = 3 + scoreHeaders.length + 5; 
       let tableFontSize = "11px";
       let cellPadding = "7px 5px";
       
@@ -5690,6 +5698,12 @@
         cellPadding = "5px 3px";
       }
 
+      let printCollectMax = 0;
+      if (scoreHeaders.length > 0) {
+        printCollectMax = scoreHeaders.reduce((sum, sh) => sum + parseMaxScore(sh), 0);
+      }
+      const printCollectTitle = printCollectMax > 0 ? `คะแนนเก็บรวม (${printCollectMax})` : "คะแนนเก็บรวม";
+
       // Build table headers with explicit column widths to prevent overflow
       let headersHtml = `
         <th style="width: 45px; min-width: 45px;">ลำดับ</th>
@@ -5700,6 +5714,7 @@
         headersHtml += `<th style="min-width: 60px; max-width: 150px; font-size: 0.9em; word-break: break-word; line-height: 1.2;">${sh}</th>`;
       });
       headersHtml += `
+        <th style="width: 80px; min-width: 70px; font-size: 0.95em;">${printCollectTitle}</th>
         <th style="width: 80px; min-width: 70px; font-size: 0.95em;">กลางภาค (20)</th>
         <th style="width: 80px; min-width: 70px; font-size: 0.95em;">ปลายภาค (20)</th>
         <th style="width: 70px; min-width: 60px;">รวม 100</th>
@@ -5723,6 +5738,7 @@
         });
 
         rowHtml += `
+            <td style="font-weight: 600;">${calc.collectTotal}</td>
             <td>${st.midterm_score !== undefined && st.midterm_score !== null && st.midterm_score !== "" ? st.midterm_score : "-"}</td>
             <td>${st.final_score !== undefined && st.final_score !== null && st.final_score !== "" ? st.final_score : "-"}</td>
             <td style="font-weight: bold;">${calc.totalScore}</td>
