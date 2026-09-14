@@ -29,6 +29,8 @@ function doGet(e) {
         }
       } else if (action === "formatConfig") {
         result = formatConfigSheetAPI();
+      } else if (action === "setupAllSheetsFormulas") {
+        result = setupAllSheetsFormulasAPI();
       } else if (action === "verifyTeacherPIN") {
         var clientPin = e.parameter.pin || "";
         if (clientPin === getTeacherPIN()) {
@@ -123,6 +125,8 @@ function doPost(e) {
       result = saveSummaryReportAPI(reportData);
     } else if (action === "createSampleData") {
       result = createSampleDataAPI();
+    } else if (action === "setupAllSheetsFormulas") {
+      result = setupAllSheetsFormulasAPI();
     } else {
       result = { status: "error", message: "ไม่พบ Action POST ที่ต้องการ" };
     }
@@ -641,6 +645,7 @@ function onOpen() {
   try {
     SpreadsheetApp.getUi()
       .createMenu('GradeInsights')
+      .addItem('⚡ ติดตั้ง/อัปเดตสูตรคะแนนรวมและเกรดอัตโนมัติ (ทุกชีต)', 'setupAllSheetsFormulasAPI')
       .addItem('🌐 เปิดหน้าต่างระบบดูคะแนน (Web App)', 'openWebAppDialog')
       .addItem('⚙️ จัดระเบียบชีต Config', 'formatConfigSheetAPI')
       .addItem('📊 สร้างข้อมูลตัวอย่าง (Create Sample Data)', 'createSampleDataAPI')
@@ -688,14 +693,16 @@ function createSampleDataAPI() {
     var sheet1 = ss.getSheetByName(sheet1Name);
     if (!sheet1) {
       sheet1 = ss.insertSheet(sheet1Name);
-      var headers = ["student_id", "name", "classroom", "student_no", "subject_code", "subject_name", "midterm_score", "final_score", "ใบงาน 1 (10)", "จิตพิสัย (10)", "โครงงาน (20)", "comment"];
+      var headers = ["student_id", "name", "classroom", "student_no", "subject_code", "subject_name", "midterm_score", "final_score", "กิจกรรมที่ 1.1 พัฒนาโปรแกรม (5)", "การเพิ่มมูลค่าสินค้าและบริการ (5)", "รวมบทที่ 1", "โครงงานวิทยาการข้อมูล (10)", "คะแนนรวม (100)", "เกรด", "ผลประเมิน", "comment"];
       sheet1.appendRow(headers);
-      sheet1.getRange("A1:L1").setFontWeight("bold").setBackground("#f3f4f6");
+      sheet1.getRange("A1:P1").setFontWeight("bold").setBackground("#f3f4f6");
+      sheet1.getRange("M1").setBackground("#e0f2fe");
+      sheet1.getRange("N1:O1").setBackground("#d1fae5");
       
       var rows = [
-        ["69001", "นายสมชาย ใจดี", "ม.4/1", 1, "ค31201", "คณิตศาสตร์เพิ่มเติม", 18, 17, 9, 9, 18, "ตั้งใจเรียนดีมาก คอยช่วยเหลือเพื่อนสะกดแนวคิดทางคณิตศาสตร์"],
-        ["69002", "นางสาวสมศรี สวยงาม", "ม.4/1", 2, "ค31201", "คณิตศาสตร์เพิ่มเติม", 12, 11, 8, 7, 14, "เกณฑ์ปานกลาง ควรทบทวนสูตรเพิ่มเติมและส่งงานให้ตรงเวลาขึ้น"],
-        ["69003", "นายสมศักดิ์ รักดี", "ม.4/1", 3, "ค31201", "คณิตศาสตร์เพิ่มเติม", 8, 9, 5, 4, 10, "กลุ่มเสี่ยงวิกฤต! ขาดเรียนบ่อยครั้งและคะแนนเก็บต่ำกว่าเกณฑ์"]
+        ["69001", "นายสมชาย ใจดี", "ม.4/1", 1, "ค31201", "คณิตศาสตร์เพิ่มเติม", 18, 17, 5, 5, "=SUM(I2:J2)", 10, "=SUM(G2:H2, I2:J2, L2)", "=IFS(ISBLANK(M2), "", M2>=80, 4, M2>=75, 3.5, M2>=70, 3, M2>=65, 2.5, M2>=60, 2, M2>=55, 1.5, M2>=50, 1, TRUE, 0)", "=IF(ISBLANK(N2), "", IF(N2>=1, "ผ่าน", "ไม่ผ่าน"))", "ตั้งใจเรียนดีมาก คอยช่วยเหลือเพื่อนสะกดแนวคิดทางคณิตศาสตร์"],
+        ["69002", "นางสาวสมศรี สวยงาม", "ม.4/1", 2, "ค31201", "คณิตศาสตร์เพิ่มเติม", 12, 11, 4, 4, "=SUM(I3:J3)", 7, "=SUM(G3:H3, I3:J3, L3)", "=IFS(ISBLANK(M3), "", M3>=80, 4, M3>=75, 3.5, M3>=70, 3, M3>=65, 2.5, M3>=60, 2, M3>=55, 1.5, M3>=50, 1, TRUE, 0)", "=IF(ISBLANK(N3), "", IF(N3>=1, "ผ่าน", "ไม่ผ่าน"))", "เกณฑ์ปานกลาง ควรทบทวนสูตรเพิ่มเติมและส่งงานให้ตรงเวลาขึ้น"],
+        ["69003", "นายสมศักดิ์ รักดี", "ม.4/1", 3, "ค31201", "คณิตศาสตร์เพิ่มเติม", 8, 9, 3, 2, "=SUM(I4:J4)", 4, "=SUM(G4:H4, I4:J4, L4)", "=IFS(ISBLANK(M4), "", M4>=80, 4, M4>=75, 3.5, M4>=70, 3, M4>=65, 2.5, M4>=60, 2, M4>=55, 1.5, M4>=50, 1, TRUE, 0)", "=IF(ISBLANK(N4), "", IF(N4>=1, "ผ่าน", "ไม่ผ่าน"))", "กลุ่มเสี่ยงวิกฤต! ขาดเรียนบ่อยครั้งและคะแนนเก็บต่ำกว่าเกณฑ์"]
       ];
       for (var i = 0; i < rows.length; i++) {
         sheet1.appendRow(rows[i]);
@@ -1029,6 +1036,189 @@ function saveSummaryReportAPI(data) {
     return { status: "success", message: "บันทึกรายงานสรุปผลสัมฤทธิ์ลงในชีตเรียบร้อยแล้ว!" };
   } catch (err) {
     return { status: "error", message: "เกิดข้อผิดพลาดในการบันทึกรายงาน: " + err.message };
+  }
+}
+
+/**
+ * แปลงดัชนีคอลัมน์ (1-based) เป็นตัวอักษรของ Google Sheets (เช่น 1 -> A, 27 -> AA)
+ */
+function columnToLetter(column) {
+  var temp, letter = '';
+  var col = column;
+  while (col > 0) {
+    temp = (col - 1) % 26;
+    letter = String.fromCharCode(temp + 65) + letter;
+    col = Math.floor((col - temp - 1) / 26);
+  }
+  return letter;
+}
+
+/**
+ * ตรวจสอบว่าเป็นคอลัมน์ที่ไม่นำมาคิดเป็นคะแนนเก็บหรือไม่ (Subtotal หรือ Summary)
+ * ป้องกันการนำช่อง "รวมบทที่..." หรือ "คะแนนรวม" ไปบวกทบซ้ำ (Anti-Double Counting)
+ */
+function isSubtotalOrSummaryHeader(headerName) {
+  if (!headerName) return true;
+  var h = String(headerName).trim();
+  var fixed = ["student_id", "name", "classroom", "student_no", "subject_code", "subject_name", "midterm_score", "final_score", "comment"];
+  if (fixed.indexOf(h) !== -1) return true;
+  
+  // ตรวจจับคอลัมน์ผลสรุป
+  if (h.indexOf("คะแนนรวม") !== -1 || h === "total_score" || h.toLowerCase() === "total") return true;
+  if (h === "เกรด" || h.toLowerCase() === "grade") return true;
+  if (h === "ผลประเมิน" || h.toLowerCase() === "status" || h.toLowerCase() === "evaluation") return true;
+  
+  // ตรวจจับคอลัมน์รวมรายบท/รายหน่วย
+  if (h.indexOf("รวมบท") === 0 || h.indexOf("รวมหน่วย") === 0 || h.indexOf("คะแนนรวมบท") === 0 || h.indexOf("คะแนนรวมหน่วย") === 0 || h.toLowerCase().indexOf("subtotal") !== -1) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * ติดตั้ง/อัปเดตสูตรคำนวณคะแนนรวม เกรด และผลประเมินอัตโนมัติในทุกแผ่นงานห้องเรียน
+ * ระบบจะตรวจจับและข้ามช่อง 'รวมบทที่...' ไม่นำมาบวกทบซ้ำ
+ */
+function setupAllSheetsFormulasAPI() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheets = ss.getSheets();
+    var updatedSheets = [];
+    
+    for (var s = 0; s < sheets.length; s++) {
+      var sheet = sheets[s];
+      var sheetName = sheet.getName();
+      
+      // ข้ามชีตตั้งค่าและชีตรายงานสรุป
+      if (sheetName === "Config" || sheetName === "Settings" || sheetName === "สรุปผลสัมฤทธิ์" || sheetName === "Sheet1") {
+        continue;
+      }
+      
+      var lastRow = sheet.getLastRow();
+      var lastCol = sheet.getLastColumn();
+      if (lastRow < 1 || lastCol < 1) continue;
+      
+      var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+      
+      var totalColName = "คะแนนรวม (100)";
+      var gradeColName = "เกรด";
+      var evalColName = "ผลประเมิน";
+      
+      var totalColIdx = headers.indexOf(totalColName);
+      var gradeColIdx = headers.indexOf(gradeColName);
+      var evalColIdx = headers.indexOf(evalColName);
+      var commentIdx = headers.indexOf("comment");
+      
+      // ถ้ายังไม่มีคอลัมน์ผลสรุป ให้แทรกก่อนหน้าคอลัมน์ comment (หรือต่อท้าย)
+      if (totalColIdx === -1) {
+        if (commentIdx !== -1) {
+          sheet.insertColumnBefore(commentIdx + 1);
+          sheet.getRange(1, commentIdx + 1).setValue(totalColName);
+        } else {
+          sheet.getRange(1, lastCol + 1).setValue(totalColName);
+        }
+        lastCol = sheet.getLastColumn();
+        headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+        totalColIdx = headers.indexOf(totalColName);
+      }
+      
+      if (gradeColIdx === -1) {
+        commentIdx = headers.indexOf("comment");
+        if (commentIdx !== -1) {
+          sheet.insertColumnBefore(commentIdx + 1);
+          sheet.getRange(1, commentIdx + 1).setValue(gradeColName);
+        } else {
+          sheet.getRange(1, lastCol + 1).setValue(gradeColName);
+        }
+        lastCol = sheet.getLastColumn();
+        headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+        gradeColIdx = headers.indexOf(gradeColName);
+      }
+      
+      if (evalColIdx === -1) {
+        commentIdx = headers.indexOf("comment");
+        if (commentIdx !== -1) {
+          sheet.insertColumnBefore(commentIdx + 1);
+          sheet.getRange(1, commentIdx + 1).setValue(evalColName);
+        } else {
+          sheet.getRange(1, lastCol + 1).setValue(evalColName);
+        }
+        lastCol = sheet.getLastColumn();
+        headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+        evalColIdx = headers.indexOf(evalColName);
+      }
+      
+      // ค้นหาคอลัมน์คะแนนจริง (งานย่อย + กลางภาค + ปลายภาค) โดยข้ามคอลัมน์ "รวมบท..."
+      var scoreColIndices = [];
+      for (var c = 0; c < headers.length; c++) {
+        var hName = headers[c];
+        if (hName === "midterm_score" || hName === "final_score") {
+          scoreColIndices.push(c + 1);
+        } else if (!isSubtotalOrSummaryHeader(hName)) {
+          scoreColIndices.push(c + 1);
+        }
+      }
+      
+      // ใส่สูตรให้ทุกแถวนักเรียน (แถว 2 ถึง lastRow)
+      if (lastRow >= 2 && scoreColIndices.length > 0) {
+        var numRows = lastRow - 1;
+        var totalFormulas = [];
+        var gradeFormulas = [];
+        var evalFormulas = [];
+        
+        var totalColLetter = columnToLetter(totalColIdx + 1);
+        var gradeColLetter = columnToLetter(gradeColIdx + 1);
+        
+        for (var r = 2; r <= lastRow; r++) {
+          var cellRefs = [];
+          for (var k = 0; k < scoreColIndices.length; k++) {
+            cellRefs.push(columnToLetter(scoreColIndices[k]) + r);
+          }
+          var sumArgs = cellRefs.join(", ");
+          
+          var totalFormula = "=IF(COUNTA(" + sumArgs + ")=0, "", SUM(" + sumArgs + "))";
+          totalFormulas.push([totalFormula]);
+          
+          var tCell = totalColLetter + r;
+          var gradeFormula = "=IFS(ISBLANK(" + tCell + "), "", " + tCell + ">=80, 4, " + tCell + ">=75, 3.5, " + tCell + ">=70, 3, " + tCell + ">=65, 2.5, " + tCell + ">=60, 2, " + tCell + ">=55, 1.5, " + tCell + ">=50, 1, TRUE, 0)";
+          gradeFormulas.push([gradeFormula]);
+          
+          var gCell = gradeColLetter + r;
+          var evalFormula = "=IF(ISBLANK(" + gCell + "), "", IF(" + gCell + ">=1, "ผ่าน", "ไม่ผ่าน"))";
+          evalFormulas.push([evalFormula]);
+        }
+        
+        sheet.getRange(2, totalColIdx + 1, numRows, 1).setFormulas(totalFormulas);
+        sheet.getRange(2, gradeColIdx + 1, numRows, 1).setFormulas(gradeFormulas);
+        sheet.getRange(2, evalColIdx + 1, numRows, 1).setFormulas(evalFormulas);
+      }
+      
+      // จัดรูปแบบหัวตาราง
+      sheet.getRange(1, totalColIdx + 1).setFontWeight("bold").setBackground("#e0f2fe").setHorizontalAlignment("center");
+      sheet.getRange(1, gradeColIdx + 1).setFontWeight("bold").setBackground("#d1fae5").setHorizontalAlignment("center");
+      sheet.getRange(1, evalColIdx + 1).setFontWeight("bold").setBackground("#d1fae5").setHorizontalAlignment("center");
+      
+      updatedSheets.push(sheetName);
+    }
+    
+    try {
+      SpreadsheetApp.getUi().alert("✅ ติดตั้ง/อัปเดตสูตรคะแนนรวมและเกรดสำเร็จ!
+- อัปเดตทั้งหมด: " + updatedSheets.length + " ชีต
+(" + updatedSheets.join(", ") + ")
+
+ระบบได้ข้ามช่อง 'รวมบท' ไม่นำมาบวกทบซ้ำเรียบร้อยแล้วครับ");
+    } catch(e) {}
+    
+    return {
+      status: "success",
+      message: "ติดตั้งสูตรคะแนนรวมและเกรดสำเร็จใน " + updatedSheets.length + " แผ่นงาน",
+      updatedSheets: updatedSheets
+    };
+  } catch(err) {
+    try {
+      SpreadsheetApp.getUi().alert("❌ เกิดข้อผิดพลาด: " + err.message);
+    } catch(e) {}
+    return { status: "error", message: err.message };
   }
 }
 

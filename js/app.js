@@ -65,6 +65,22 @@
         });
     }
 
+    function setupAllSheetsFormulas() {
+      showToast("⏳ กำลังติดตั้งสูตรคะแนนรวมและเกรดใน Google Sheets ทุกแผ่นงาน...", "info");
+      callBackendAPI("setupAllSheetsFormulas")
+        .then(res => {
+          if (res && res.status === "success") {
+            showToast("⚡ " + (res.message || "ติดตั้งสูตรคะแนนรวมและเกรดสำเร็จครบทุกชีต!"), "success");
+            if (typeof syncTeacherGrades === "function") syncTeacherGrades();
+          } else {
+            showToast("⚠️ " + (res.message || "ไม่สามารถติดตั้งสูตรได้"), "danger");
+          }
+        })
+        .catch(err => {
+          showToast("❌ การเชื่อมต่อล้มเหลว: " + err.message, "danger");
+        });
+    }
+
     function saveConnectionSettings() {
       const urlInput = document.getElementById("settings-web-app-url");
       if (urlInput) {
@@ -96,6 +112,7 @@
           if (action === "getInitData") runner.getInitData();
           else if (action === "verifyTeacherPIN") runner.verifyTeacherPINAPI(params.pin);
           else if (action === "formatConfig") runner.formatConfigSheetAPI();
+          else if (action === "setupAllSheetsFormulas") runner.setupAllSheetsFormulasAPI();
           else if (action === "fetchAllGrades") runner.fetchAllGradesAcrossSheetsAPI(params.pin);
           else if (action === "searchStudent") runner.searchStudentAcrossSheetsAPI(params.studentId, params.classroom);
           else if (action === "fetchGradesData") runner.fetchGradesData(params.sheetName, params.pin);
@@ -996,7 +1013,24 @@
 
     function getScoreHeaders(headers) {
       const fixedHeaders = ["student_id", "name", "classroom", "student_no", "subject_code", "subject_name", "midterm_score", "final_score", "comment"];
-      return headers.filter(h => !fixedHeaders.includes(h));
+      return headers.filter(h => {
+        if (!h) return false;
+        const s = String(h).trim();
+        if (fixedHeaders.includes(s)) return false;
+        
+        // กรองข้ามคอลัมน์ผลสรุป (Summary Columns)
+        if (s.includes("คะแนนรวม") || s === "total_score" || s.toLowerCase() === "total") return false;
+        if (s === "เกรด" || s.toLowerCase() === "grade") return false;
+        if (s === "ผลประเมิน" || s.toLowerCase() === "status" || s.toLowerCase() === "evaluation") return false;
+        
+        // กรองข้ามคอลัมน์รวมรายบท/รายหน่วย (Anti-Double Counting)
+        // แสดงเฉพาะใน Google Sheets เท่านั้น ไม่นำมาบวกทบซ้ำ และไม่แสดงซ้ำซ้อนในตารางหน้าเว็บ
+        if (s.startsWith("รวมบท") || s.startsWith("รวมหน่วย") || s.startsWith("คะแนนรวมบท") || s.startsWith("คะแนนรวมหน่วย") || s.toLowerCase().includes("subtotal")) {
+          return false;
+        }
+        
+        return true;
+      });
     }
 
     function parseMaxScore(headerName) {
