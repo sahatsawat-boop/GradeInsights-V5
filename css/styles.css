@@ -1830,4 +1830,17 @@
       .magic-shimmer-btn::after {
         animation: none !important;
       }
-    }
+    }
+    .stat-info .stat-subtext {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      display: block;
+    }
+    body.dark-mode #report-grade-gte25-row {
+      background: rgba(16, 185, 129, 0.15) !important;
+      color: #34d399 !important;
+    }
+    body.dark-mode #report-grade-gte25-row td {
+      color: #34d399 !important;
+    }

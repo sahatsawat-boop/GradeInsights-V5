@@ -1287,12 +1287,24 @@
       document.getElementById("tstat-total-students").textContent = studentIds.length;
 
       let gpaSum = 0;
+      let totalGte25Count = 0;
       dbGrades.forEach(student => {
         const calc = calculateScoresAndGrades(student, dbHeaders);
-        gpaSum += Number(calc.grade);
+        const gradeVal = Number(calc.grade);
+        gpaSum += gradeVal;
+        if (gradeVal >= 2.5) {
+          totalGte25Count++;
+        }
       });
       const avgGPA = dbGrades.length > 0 ? (gpaSum / dbGrades.length).toFixed(2) : "0.00";
       document.getElementById("tstat-gpa-average").textContent = avgGPA;
+
+      // Update 4th stat card: Grade >= 2.5 %
+      const totalGte25Percent = dbGrades.length > 0 ? ((totalGte25Count / dbGrades.length) * 100).toFixed(2) : "0.00";
+      const gte25El = document.getElementById("tstat-gte25-percent");
+      if (gte25El) gte25El.textContent = `${totalGte25Percent}%`;
+      const gte25CountEl = document.getElementById("tstat-gte25-count");
+      if (gte25CountEl) gte25CountEl.textContent = `${totalGte25Count} จาก ${dbGrades.length} คน`;
 
       // Group rooms stats table
       const tableBody = document.getElementById("teacher-overview-table-body");
@@ -1304,17 +1316,21 @@
         let scoreSum = 0;
         let gpaRoomSum = 0;
         let passCount = 0;
+        let roomGte25Count = 0;
 
         roomStudents.forEach(st => {
           const calc = calculateScoresAndGrades(st, dbHeaders);
+          const gradeVal = Number(calc.grade);
           scoreSum += Number(calc.totalScore);
-          gpaRoomSum += Number(calc.grade);
+          gpaRoomSum += gradeVal;
           if (calc.status === "ผ่าน") passCount++;
+          if (gradeVal >= 2.5) roomGte25Count++;
         });
 
         const roomAvgScore = roomStudents.length > 0 ? (scoreSum / roomStudents.length).toFixed(1) : "0.0";
         const roomAvgGpa = roomStudents.length > 0 ? (gpaRoomSum / roomStudents.length).toFixed(2) : "0.00";
         const passPercent = roomStudents.length > 0 ? ((passCount / roomStudents.length) * 100).toFixed(0) : "0";
+        const roomGte25Percent = roomStudents.length > 0 ? ((roomGte25Count / roomStudents.length) * 100).toFixed(2) : "0.00";
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -1323,6 +1339,7 @@
           <td class="font-bold text-primary">${roomAvgScore}</td>
           <td class="font-bold text-success">${roomAvgGpa}</td>
           <td><span class="badge ${passPercent >= 70 ? 'badge-pass' : 'badge-fail'}">${passPercent}% ผ่าน</span></td>
+          <td><span class="badge ${Number(roomGte25Percent) >= 60 ? 'badge-pass' : 'badge-fail'}" style="font-size: 11px; padding: 3px 9px;">${roomGte25Percent}%</span></td>
         `;
         tableBody.appendChild(tr);
       });
@@ -2703,6 +2720,24 @@
         <td>${pctGradeMS !== "0.00" ? pctGradeMS : "-"}</td>
       `;
 
+      // Render 2.5+ Quality Assessment summary row
+      const grandGte25Count = (grandGradeCounts["4"] || 0) + (grandGradeCounts["3.5"] || 0) + (grandGradeCounts["3"] || 0) + (grandGradeCounts["2.5"] || 0);
+      const grandGte25Pct = grandTotalStudents > 0 ? ((grandGte25Count / grandTotalStudents) * 100).toFixed(2) : "0.00";
+      const gte25Row = document.getElementById("report-grade-gte25-row");
+      if (gte25Row) {
+        gte25Row.innerHTML = `
+          <td colspan="3" class="text-left font-bold" style="padding: 10px 14px; color: #047857;">
+            <i class="fa-solid fa-award"></i> ผู้เรียนที่มีผลการเรียนระดับ 2.5 ขึ้นไป (เกรด 2.5 - 4.0)
+          </td>
+          <td colspan="10" style="text-align: right; padding: 10px 18px; color: #047857;">
+            <span style="font-size: 13.5px;">จำนวน <strong>${grandGte25Count}</strong> คน</span>
+            <span style="margin-left: 15px; font-size: 14px; background: rgba(16, 185, 129, 0.2); padding: 4px 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
+              คิดเป็น <strong>${grandGte25Pct}%</strong>
+            </span>
+          </td>
+        `;
+      }
+
       // Render Table 2 totals
       evalTotalRow.innerHTML = `
         <td colspan="2">รวม</td>
@@ -2747,7 +2782,7 @@
       lastReportData = {
         gradeRows: gradeRowsArray,
         evalRows: evalRowsArray,
-        gradeTotals: { total: grandTotalStudents, g4: grandGradeCounts["4"], g3_5: grandGradeCounts["3.5"], g3: grandGradeCounts["3"], g2_5: grandGradeCounts["2.5"], g2: grandGradeCounts["2"], g1_5: grandGradeCounts["1.5"], g1: grandGradeCounts["1"], g0: grandGradeCounts["0"], gR: grandGradeCounts["ร"], gMS: grandGradeCounts["มส"] },
+        gradeTotals: { total: grandTotalStudents, g4: grandGradeCounts["4"], g3_5: grandGradeCounts["3.5"], g3: grandGradeCounts["3"], g2_5: grandGradeCounts["2.5"], g2: grandGradeCounts["2"], g1_5: grandGradeCounts["1.5"], g1: grandGradeCounts["1"], g0: grandGradeCounts["0"], gR: grandGradeCounts["ร"], gMS: grandGradeCounts["มส"], gte25Total: grandGte25Count, gte25Pct: grandGte25Pct },
         gradePcts: { total: 100, g4: pctGrade4 !== "0.00" ? pctGrade4 : "-", g3_5: pctGrade3_5 !== "0.00" ? pctGrade3_5 : "-", g3: pctGrade3 !== "0.00" ? pctGrade3 : "-", g2_5: pctGrade2_5 !== "0.00" ? pctGrade2_5 : "-", g2: pctGrade2 !== "0.00" ? pctGrade2 : "-", g1_5: pctGrade1_5 !== "0.00" ? pctGrade1_5 : "-", g1: pctGrade1 !== "0.00" ? pctGrade1 : "-", g0: pctGrade0 !== "0.00" ? pctGrade0 : "-", gR: pctGradeR !== "0.00" ? pctGradeR : "-", gMS: pctGradeMS !== "0.00" ? pctGradeMS : "-" },
         evalTotals: { total: grandTotalStudents, r3: grandEvalReadingCounts["3"], r2: grandEvalReadingCounts["2"], r1: grandEvalReadingCounts["1"], r0: grandEvalReadingCounts["0"], c3: grandEvalCharacterCounts["3"], c2: grandEvalCharacterCounts["2"], c1: grandEvalCharacterCounts["1"], c0: grandEvalCharacterCounts["0"] },
         evalPcts: { total: 100, r3: pctRead3 !== "0.00" ? pctRead3 : "-", r2: pctRead2 !== "0.00" ? pctRead2 : "-", r1: pctRead1 !== "0.00" ? pctRead1 : "-", r0: pctRead0 !== "0.00" ? pctRead0 : "-", c3: pctChar3 !== "0.00" ? pctChar3 : "-", c2: pctChar2 !== "0.00" ? pctChar2 : "-", c1: pctChar1 !== "0.00" ? pctChar1 : "-", c0: pctChar0 !== "0.00" ? pctChar0 : "-" }

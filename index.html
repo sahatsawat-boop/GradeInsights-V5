@@ -277,6 +277,14 @@
                   <p id="tstat-gpa-average">-</p>
                 </div>
               </div>
+              <div class="stat-card magic-card">
+                <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #059669;"><i class="fa-solid fa-award"></i></div>
+                <div class="stat-info">
+                  <h4>เกรด 2.5 ขึ้นไป</h4>
+                  <p id="tstat-gte25-percent" style="color: #059669;">-</p>
+                  <span class="stat-subtext" id="tstat-gte25-count">-</span>
+                </div>
+              </div>
             </div>
 
             <!-- Dashboard Charts -->
@@ -307,6 +315,7 @@
                       <th>คะแนนรวมเฉลี่ย (เต็ม 100)</th>
                       <th>เกรดเฉลี่ย (GPA)</th>
                       <th>ผ่านเกณฑ์ (%)</th>
+                      <th>เกรด 2.5 ขึ้นไป (%)</th>
                     </tr>
                   </thead>
                   <tbody id="teacher-overview-table-body">
@@ -492,6 +501,9 @@
                     </tr>
                     <tr id="report-grade-percentage-row" style="font-weight: bold; background: rgba(var(--primary-rgb), 0.02);">
                       <!-- Calculated Percentages -->
+                    </tr>
+                    <tr id="report-grade-gte25-row" style="font-weight: bold; background: rgba(16, 185, 129, 0.08); color: #047857;">
+                      <!-- Calculated 2.5+ Quality Assessment -->
                     </tr>
                   </tfoot>
                 </table>
