@@ -704,8 +704,8 @@ function createSampleDataAPI() {
       
       var rows = [
         ["69001", "นายสมชาย ใจดี", "ม.4/1", 1, "ค31201", "คณิตศาสตร์เพิ่มเติม", 18, 17, 5, 5, "=SUM(I2:J2)", 10, "=SUM(G2:H2, I2:J2, L2)", '=IFS(ISBLANK(M2), "", M2>=80, 4, M2>=75, 3.5, M2>=70, 3, M2>=65, 2.5, M2>=60, 2, M2>=55, 1.5, M2>=50, 1, TRUE, 0)', '=IF(ISBLANK(N2), "", IF(N2>=1, "ผ่าน", "ไม่ผ่าน"))', "ตั้งใจเรียนดีมาก คอยช่วยเหลือเพื่อนสะกดแนวคิดทางคณิตศาสตร์"],
-        ["69002", "นางสาวสมศรี สวยงาม", "ม.4/1", 2, "ค31201", "คณิตศาสตร์เพิ่มเติม", 12, 11, 4, 4, "=SUM(I3:J3)", 7, "=SUM(G3:H3, I3:J3, L3)", '=IFS(ISBLANK(M3), "", M3>=80, 4, M3>=75, 3.5, M3>=70, 3, M3>=65, 2.5, M3>=60, 2, M3>=55, 1.5, M3>=50, 1, TRUE, 0)', '=IF(ISBLANK(N3), "", IF(N3>=1, "ผ่าน", "ไม่ผ่าน"))', "เกณฑ์ปานกลาง ควรทบทวนสูตรเพิ่มเติมและส่งงานให้ตรงเวลาขึ้น"],
-        ["69003", "นายสมศักดิ์ รักดี", "ม.4/1", 3, "ค31201", "คณิตศาสตร์เพิ่มเติม", 8, 9, 3, 2, "=SUM(I4:J4)", 4, "=SUM(G4:H4, I4:J4, L4)", '=IFS(ISBLANK(M4), "", M4>=80, 4, M4>=75, 3.5, M4>=70, 3, M4>=65, 2.5, M4>=60, 2, M4>=55, 1.5, M4>=50, 1, TRUE, 0)', '=IF(ISBLANK(N4), "", IF(N4>=1, "ผ่าน", "ไม่ผ่าน"))', "กลุ่มเสี่ยงวิกฤต! ขาดเรียนบ่อยครั้งและคะแนนเก็บต่ำกว่าเกณฑ์"]
+        ["69002", "นางสาวสมศรี สวยงาม", "ม.4/1", 2, "ค31201", "คณิตศาสตร์เพิ่มเติม", 12, 11, "ยังไม่ส่ง", 4, "=SUM(I3:J3)", 7, "=SUM(G3:H3, I3:J3, L3)", '=IFS(ISBLANK(M3), "", M3>=80, 4, M3>=75, 3.5, M3>=70, 3, M3>=65, 2.5, M3>=60, 2, M3>=55, 1.5, M3>=50, 1, TRUE, 0)', '=IF(ISBLANK(N3), "", IF(N3>=1, "ผ่าน", "ไม่ผ่าน"))', "เกณฑ์ปานกลาง มีงานค้างส่ง ควรเร่งส่งงานให้ตรงเวลาขึ้น"],
+        ["69003", "นายสมศักดิ์ รักดี", "ม.4/1", 3, "ค31201", "คณิตศาสตร์เพิ่มเติม", 8, 9, 0, 2, "=SUM(I4:J4)", 4, "=SUM(G4:H4, I4:J4, L4)", '=IFS(ISBLANK(M4), "", M4>=80, 4, M4>=75, 3.5, M4>=70, 3, M4>=65, 2.5, M4>=60, 2, M4>=55, 1.5, M4>=50, 1, TRUE, 0)', '=IF(ISBLANK(N4), "", IF(N4>=1, "ผ่าน", "ไม่ผ่าน"))', "กลุ่มเสี่ยงวิกฤต! ได้คะแนน 0 ในบางชิ้นงานและคะแนนเก็บต่ำกว่าเกณฑ์"]
       ];
       for (var i = 0; i < rows.length; i++) {
         sheet1.appendRow(rows[i]);
@@ -1081,6 +1081,19 @@ function isSubtotalOrSummaryHeader(headerName) {
 }
 
 /**
+ * ตรวจสอบว่าเป็นคอลัมน์คะแนนงานย่อยระหว่างบทหรือไม่
+ * (ไม่รวม ข้อมูลนักเรียน, กลางภาค, ปลายภาค, รวมบท, คะแนนรวม, เกรด, ผลประเมิน, comment)
+ */
+function isTaskScoreHeader(headerName) {
+  if (!headerName) return false;
+  var h = String(headerName).trim();
+  var fixed = ["student_id", "name", "classroom", "student_no", "subject_code", "subject_name", "midterm_score", "final_score", "comment"];
+  if (fixed.indexOf(h) !== -1) return false;
+  if (isSubtotalOrSummaryHeader(h)) return false;
+  return true;
+}
+
+/**
  * ติดตั้ง/อัปเดตสูตรคำนวณคะแนนรวม เกรด และผลประเมินอัตโนมัติในทุกแผ่นงานห้องเรียน
  * ระบบจะตรวจจับและข้ามช่อง 'รวมบทที่...' ไม่นำมาบวกทบซ้ำ
  */
@@ -1212,7 +1225,7 @@ function setupAllSheetsFormulasAPI() {
     }
     
     try {
-      SpreadsheetApp.getUi().alert("✅ ติดตั้ง/อัปเดตสูตรและไฮไลท์สีสำเร็จ!\n- อัปเดตทั้งหมด: " + updatedSheets.length + " ชีต\n(" + updatedSheets.join(", ") + ")\n\nระบบได้ดำเนินการ:\n1. คำนวณคะแนนรวมและเกรด (ข้ามช่อง 'รวมบท' ไม่บวกซ้ำ)\n2. ไฮไลท์สีผลการเรียนอัตโนมัติ:\n   🔴 สีแดง = เกรด 0 / ไม่ผ่าน / ร / มส\n   🟡 สีเหลือง = เกรดต่ำกว่า 2.5 (1, 1.5, 2)\n   🟢 สีเขียว = เกรด 2.5 ขึ้นไป");
+      SpreadsheetApp.getUi().alert("✅ ติดตั้ง/อัปเดตสูตรและไฮไลท์สีสำเร็จ!\n- อัปเดตทั้งหมด: " + updatedSheets.length + " ชีต\n(" + updatedSheets.join(", ") + ")\n\nระบบได้ดำเนินการ:\n1. คำนวณคะแนนรวมและเกรด (ข้ามช่อง 'รวมบท' ไม่บวกซ้ำ)\n2. ไฮไลท์สีผลการเรียนและงานค้างอัตโนมัติ:\n   🔴 สีแดง = เกรด 0 / ไม่ผ่าน / ชิ้นงานได้ 0 หรือยังไม่ส่ง\n   🟡 สีเหลือง = เกรดต่ำกว่า 2.5 (1, 1.5, 2)\n   🟢 สีเขียว = เกรด 2.5 ขึ้นไป");
     } catch(e) {}
     
     return {
@@ -1233,45 +1246,56 @@ function setupAllSheetsFormulasAPI() {
  * - เกรด 0, ร, มส หรือ ผลประเมิน "ไม่ผ่าน": ไฮไลท์สีแดง (#fee2e2, ตัวอักษร #991b1b)
  * - เกรดต่ำกว่า 2.5 (1, 1.5, 2): ไฮไลท์สีเหลืองเตือน (#fef3c7, ตัวอักษร #92400e)
  * - เกรด 2.5 ขึ้นไป หรือ ผลประเมิน "ผ่าน": ไฮไลท์สีเขียวอ่อน (#d1fae5, ตัวอักษร #065f46)
+ * - คะแนนชิ้นงานเก็บย่อยที่เป็น 0 หรือยังไม่ส่งงาน: ไฮไลท์สีแดง (#fee2e2, ตัวอักษร #991b1b) เว้นช่องว่าง
  */
 function applyGradeConditionalFormatting(sheet, gradeColIdx, evalColIdx, numRows) {
-  if (!sheet || numRows < 1 || gradeColIdx < 0) return;
+  if (!sheet || numRows < 1) return;
   
-  var gradeColLetter = columnToLetter(gradeColIdx + 1);
-  var gradeRange = sheet.getRange(2, gradeColIdx + 1, numRows, 1);
-  gradeRange.setFontWeight("bold").setHorizontalAlignment("center");
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) return;
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   
   var newRulesToAdd = [];
+  var targetColIndices = [];
   
-  // กฎ 1 (สีแดง): เกรด = 0 หรือ ร หรือ มส
-  var ruleGrade0 = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=OR(AND(ISNUMBER(' + gradeColLetter + '2), ' + gradeColLetter + '2=0), ' + gradeColLetter + '2="ร", ' + gradeColLetter + '2="มส")')
-    .setBackground("#fee2e2")
-    .setFontColor("#991b1b")
-    .setRanges([gradeRange])
-    .build();
-  newRulesToAdd.push(ruleGrade0);
+  // 1. กฎสำหรับคอลัมน์เกรด (ถ้ามี)
+  if (gradeColIdx >= 0) {
+    targetColIndices.push(gradeColIdx + 1);
+    var gradeColLetter = columnToLetter(gradeColIdx + 1);
+    var gradeRange = sheet.getRange(2, gradeColIdx + 1, numRows, 1);
+    gradeRange.setFontWeight("bold").setHorizontalAlignment("center");
+    
+    // กฎ 1.1 (สีแดง): เกรด = 0 หรือ ร หรือ มส
+    var ruleGrade0 = SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied('=OR(AND(ISNUMBER(' + gradeColLetter + '2), ' + gradeColLetter + '2=0), ' + gradeColLetter + '2="ร", ' + gradeColLetter + '2="มส")')
+      .setBackground("#fee2e2")
+      .setFontColor("#991b1b")
+      .setRanges([gradeRange])
+      .build();
+    newRulesToAdd.push(ruleGrade0);
 
-  // กฎ 2 (สีเหลือง): เกรดต่ำกว่า 2.5 (ได้แก่ 1, 1.5, 2)
-  var ruleGradeWarning = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=AND(ISNUMBER(' + gradeColLetter + '2), ' + gradeColLetter + '2>0, ' + gradeColLetter + '2<2.5)')
-    .setBackground("#fef3c7")
-    .setFontColor("#92400e")
-    .setRanges([gradeRange])
-    .build();
-  newRulesToAdd.push(ruleGradeWarning);
+    // กฎ 1.2 (สีเหลือง): เกรดต่ำกว่า 2.5 (ได้แก่ 1, 1.5, 2)
+    var ruleGradeWarning = SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied('=AND(ISNUMBER(' + gradeColLetter + '2), ' + gradeColLetter + '2>0, ' + gradeColLetter + '2<2.5)')
+      .setBackground("#fef3c7")
+      .setFontColor("#92400e")
+      .setRanges([gradeRange])
+      .build();
+    newRulesToAdd.push(ruleGradeWarning);
 
-  // กฎ 3 (สีเขียวอ่อน): เกรดตั้งแต่ 2.5 ขึ้นไป (2.5, 3, 3.5, 4)
-  var ruleGradeGood = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=AND(ISNUMBER(' + gradeColLetter + '2), ' + gradeColLetter + '2>=2.5)')
-    .setBackground("#d1fae5")
-    .setFontColor("#065f46")
-    .setRanges([gradeRange])
-    .build();
-  newRulesToAdd.push(ruleGradeGood);
+    // กฎ 1.3 (สีเขียวอ่อน): เกรดตั้งแต่ 2.5 ขึ้นไป (2.5, 3, 3.5, 4)
+    var ruleGradeGood = SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied('=AND(ISNUMBER(' + gradeColLetter + '2), ' + gradeColLetter + '2>=2.5)')
+      .setBackground("#d1fae5")
+      .setFontColor("#065f46")
+      .setRanges([gradeRange])
+      .build();
+    newRulesToAdd.push(ruleGradeGood);
+  }
 
-  // กฎสำหรับคอลัมน์ผลประเมิน (ถ้ามี)
-  if (evalColIdx !== -1 && evalColIdx !== gradeColIdx) {
+  // 2. กฎสำหรับคอลัมน์ผลประเมิน (ถ้ามี)
+  if (evalColIdx >= 0 && evalColIdx !== gradeColIdx) {
+    targetColIndices.push(evalColIdx + 1);
     var evalRange = sheet.getRange(2, evalColIdx + 1, numRows, 1);
     evalRange.setFontWeight("bold").setHorizontalAlignment("center");
     
@@ -1292,7 +1316,26 @@ function applyGradeConditionalFormatting(sheet, gradeColIdx, evalColIdx, numRows
     newRulesToAdd.push(ruleEvalPass);
   }
 
-  // เคลียร์กฎเดิมในคอลัมน์นี้เพื่อไม่ให้กฎซ้ำซ้อน
+  // 3. กฎสำหรับคอลัมน์คะแนนงานย่อยระหว่างบท (ได้ 0 หรือ ยังไม่ส่งงาน ไฮไลท์แดง โดยเว้นช่องว่างเปล่าไว้)
+  for (var c = 0; c < headers.length; c++) {
+    if (isTaskScoreHeader(headers[c])) {
+      var colNum = c + 1;
+      targetColIndices.push(colNum);
+      var tColLetter = columnToLetter(colNum);
+      var tRange = sheet.getRange(2, colNum, numRows, 1);
+      tRange.setHorizontalAlignment("center");
+      
+      var taskRule = SpreadsheetApp.newConditionalFormatRule()
+        .whenFormulaSatisfied('=AND(NOT(ISBLANK(' + tColLetter + '2)), OR(AND(ISNUMBER(' + tColLetter + '2), ' + tColLetter + '2=0), ' + tColLetter + '2="ยังไม่ส่ง", ' + tColLetter + '2="ขาดส่ง", ' + tColLetter + '2="ขาด", ' + tColLetter + '2="-", ' + tColLetter + '2="ร", ' + tColLetter + '2="มส"))')
+        .setBackground("#fee2e2")
+        .setFontColor("#991b1b")
+        .setRanges([tRange])
+        .build();
+      newRulesToAdd.push(taskRule);
+    }
+  }
+
+  // ล้างกฎเดิมในคอลัมน์เป้าหมายเพื่อไม่ให้กฎทับถมกัน
   var currentRules = sheet.getConditionalFormatRules();
   var finalRules = [];
   for (var cr = 0; cr < currentRules.length; cr++) {
@@ -1300,7 +1343,7 @@ function applyGradeConditionalFormatting(sheet, gradeColIdx, evalColIdx, numRows
     var isTarget = false;
     for (var rg = 0; rg < rRanges.length; rg++) {
       var col = rRanges[rg].getColumn();
-      if (col === gradeColIdx + 1 || (evalColIdx !== -1 && col === evalColIdx + 1)) {
+      if (targetColIndices.indexOf(col) !== -1) {
         isTarget = true;
         break;
       }
@@ -1318,7 +1361,7 @@ function applyGradeConditionalFormatting(sheet, gradeColIdx, evalColIdx, numRows
 }
 
 /**
- * ติดตั้งเฉพาะระบบไฮไลท์สีผลการเรียน (แดง 0 / เหลือง < 2.5 / เขียว >= 2.5) ให้ทุกแผ่นงาน
+ * ติดตั้งเฉพาะระบบไฮไลท์สีผลการเรียนและงานค้าง (แดง 0-งานค้าง / เหลือง < 2.5 / เขียว >= 2.5) ให้ทุกแผ่นงาน
  */
 function applyGradeHighlightingAllSheetsAPI() {
   try {
@@ -1341,19 +1384,17 @@ function applyGradeHighlightingAllSheetsAPI() {
       var gradeColIdx = headers.indexOf("เกรด");
       var evalColIdx = headers.indexOf("ผลประเมิน");
       
-      if (gradeColIdx !== -1) {
-        applyGradeConditionalFormatting(sheet, gradeColIdx, evalColIdx, lastRow - 1);
-        updatedSheets.push(sheetName);
-      }
+      applyGradeConditionalFormatting(sheet, gradeColIdx, evalColIdx, lastRow - 1);
+      updatedSheets.push(sheetName);
     }
     
     try {
-      SpreadsheetApp.getUi().alert("✅ ติดตั้งระบบไฮไลท์สีผลการเรียนสำเร็จใน " + updatedSheets.length + " ชีต!\n(" + updatedSheets.join(", ") + ")\n\n🔴 สีแดง: เกรด 0 / ไม่ผ่าน / ร / มส\n🟡 สีเหลือง: เกรดต่ำกว่า 2.5 (1, 1.5, 2)\n🟢 สีเขียว: เกรด 2.5 ขึ้นไป (2.5 - 4.0)");
+      SpreadsheetApp.getUi().alert("✅ ติดตั้งระบบไฮไลท์สีผลการเรียนและงานค้างสำเร็จใน " + updatedSheets.length + " ชีต!\n(" + updatedSheets.join(", ") + ")\n\n🔴 สีแดง: เกรด 0 / ไม่ผ่าน / งานย่อยได้ 0 หรือยังไม่ส่ง\n🟡 สีเหลือง: เกรดต่ำกว่า 2.5 (1, 1.5, 2)\n🟢 สีเขียว: เกรด 2.5 ขึ้นไป (2.5 - 4.0)\n\n(ระบบเว้นช่องว่างเปล่าไว้ ไม่เปลี่ยนเป็นสีแดงครับ)");
     } catch(e) {}
     
     return {
       status: "success",
-      message: "ติดตั้งระบบไฮไลท์สีผลการเรียนสำเร็จใน " + updatedSheets.length + " แผ่นงาน",
+      message: "ติดตั้งระบบไฮไลท์สีผลการเรียนและงานค้างสำเร็จใน " + updatedSheets.length + " แผ่นงาน",
       updatedSheets: updatedSheets
     };
   } catch(err) {

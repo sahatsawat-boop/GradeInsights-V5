@@ -3584,6 +3584,8 @@
         if (isMissingValue(val)) {
           const labelText = (val && String(val).trim() !== "-") ? String(val).trim() : "ยังไม่ส่ง";
           tdHtml += `<td><span class="badge-missing"><i class="fa-solid fa-clock-rotate-left"></i> ${labelText}</span></td>`;
+        } else if (val === 0 || val === "0") {
+          tdHtml += `<td><span style="background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-weight: 700; display: inline-block;">0</span></td>`;
         } else {
           tdHtml += `<td>${val}</td>`;
         }
@@ -4328,9 +4330,22 @@
         // Dynamic collect score columns
         scoreHeaders.forEach(sh => {
           const max = parseMaxScore(sh);
+          const rawVal = st[sh];
+          let cellContent = (rawVal !== undefined && rawVal !== null && rawVal !== "") ? rawVal : "-";
+          
+          // ตรวจจับคะแนน 0 หรือ ข้อความงานค้าง ("ยังไม่ส่ง", "ขาดส่ง", "ขาด", "-", "ร", "มส")
+          // โดยเว้นช่องว่างเปล่า (rawVal === "" หรือ undefined/null) ไว้ ไม่ให้เป็นสีแดง
+          const missingKeywords = ["ยังไม่ส่ง", "ขาดส่ง", "ขาด", "-", "ร", "มส"];
+          const isExplicitZero = (rawVal === 0 || rawVal === "0");
+          const isMissingKeyword = typeof rawVal === "string" && missingKeywords.includes(rawVal.trim());
+          
+          if (rawVal !== "" && rawVal !== null && rawVal !== undefined && (isExplicitZero || isMissingKeyword)) {
+            cellContent = `<span style="background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-weight: 700; display: inline-block;">${rawVal}</span>`;
+          }
+
           rowHtml += `
             <td class="cell-editable" data-student-id="${st.student_id}" data-key="${sh}" onclick="makeCellEditable(this, '${st.student_id}', '${st.subject_code}', '${sh}', ${max})">
-              ${(st[sh] !== undefined && st[sh] !== null && st[sh] !== "") ? st[sh] : "-"}
+              ${cellContent}
             </td>
           `;
         });
