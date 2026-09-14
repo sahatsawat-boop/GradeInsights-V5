@@ -1680,7 +1680,9 @@
             ${(st.final_score !== undefined && st.final_score !== null && st.final_score !== "") ? st.final_score : "-"}
           </td>
           <td class="font-bold text-primary">${calc.totalScore}</td>
-          <td class="font-bold text-success">${calc.grade}</td>
+          <td class="font-bold" style="text-align: center;">
+            <span style="${(calc.grade === 'ร' || calc.grade === 'มส' || Number(calc.grade) === 0 || calc.status === 'ไม่ผ่าน') ? 'background: #fee2e2; color: #991b1b; padding: 3px 10px; border-radius: 6px; font-weight: 700; display: inline-block;' : (Number(calc.grade) < 2.5 ? 'background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 6px; font-weight: 700; display: inline-block;' : 'background: #d1fae5; color: #065f46; padding: 3px 10px; border-radius: 6px; font-weight: 700; display: inline-block;')}">${calc.grade}</span>
+          </td>
           <td class="cell-editable text-left small" data-student-id="${st.student_id}" data-key="comment" onclick="makeCellEditable(this, '${st.student_id}', '${st.subject_code}', 'comment', 'text')">
             ${st.comment || "-"}
           </td>

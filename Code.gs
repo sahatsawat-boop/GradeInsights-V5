@@ -31,6 +31,8 @@ function doGet(e) {
         result = formatConfigSheetAPI();
       } else if (action === "setupAllSheetsFormulas") {
         result = setupAllSheetsFormulasAPI();
+      } else if (action === "applyGradeHighlighting") {
+        result = applyGradeHighlightingAllSheetsAPI();
       } else if (action === "verifyTeacherPIN") {
         var clientPin = e.parameter.pin || "";
         if (clientPin === getTeacherPIN()) {
@@ -646,6 +648,7 @@ function onOpen() {
     SpreadsheetApp.getUi()
       .createMenu('GradeInsights')
       .addItem('⚡ ติดตั้ง/อัปเดตสูตรคะแนนรวมและเกรดอัตโนมัติ (ทุกชีต)', 'setupAllSheetsFormulasAPI')
+      .addItem('🎨 ไฮไลท์สีผลการเรียน (แดง 0 / เหลือง < 2.5 / เขียว ≥ 2.5)', 'applyGradeHighlightingAllSheetsAPI')
       .addItem('🌐 เปิดหน้าต่างระบบดูคะแนน (Web App)', 'openWebAppDialog')
       .addItem('⚙️ จัดระเบียบชีต Config', 'formatConfigSheetAPI')
       .addItem('📊 สร้างข้อมูลตัวอย่าง (Create Sample Data)', 'createSampleDataAPI')
@@ -707,6 +710,8 @@ function createSampleDataAPI() {
       for (var i = 0; i < rows.length; i++) {
         sheet1.appendRow(rows[i]);
       }
+      // ติดตั้งไฮไลท์สีผลการเรียน (แดง 0 / เหลือง < 2.5 / เขียว >= 2.5) ในชีตตัวอย่าง
+      applyGradeConditionalFormatting(sheet1, 13, 14, rows.length);
     }
     
     // 3. สร้างชีท ม.5/1_คอมพิวเตอร์
@@ -1191,6 +1196,11 @@ function setupAllSheetsFormulasAPI() {
         sheet.getRange(2, totalColIdx + 1, numRows, 1).setFormulas(totalFormulas);
         sheet.getRange(2, gradeColIdx + 1, numRows, 1).setFormulas(gradeFormulas);
         sheet.getRange(2, evalColIdx + 1, numRows, 1).setFormulas(evalFormulas);
+        
+        sheet.getRange(2, totalColIdx + 1, numRows, 1).setHorizontalAlignment("center");
+        
+        // ติดตั้งไฮไลท์สีตามเงื่อนไข (แดง 0 / เหลือง < 2.5 / เขียว >= 2.5) อัตโนมัติ
+        applyGradeConditionalFormatting(sheet, gradeColIdx, evalColIdx, numRows);
       }
       
       // จัดรูปแบบหัวตาราง
@@ -1202,12 +1212,148 @@ function setupAllSheetsFormulasAPI() {
     }
     
     try {
-      SpreadsheetApp.getUi().alert("✅ ติดตั้ง/อัปเดตสูตรคะแนนรวมและเกรดสำเร็จ!\n- อัปเดตทั้งหมด: " + updatedSheets.length + " ชีต\n(" + updatedSheets.join(", ") + ")\n\nระบบได้ข้ามช่อง 'รวมบท' ไม่นำมาบวกทบซ้ำเรียบร้อยแล้วครับ");
+      SpreadsheetApp.getUi().alert("✅ ติดตั้ง/อัปเดตสูตรและไฮไลท์สีสำเร็จ!\n- อัปเดตทั้งหมด: " + updatedSheets.length + " ชีต\n(" + updatedSheets.join(", ") + ")\n\nระบบได้ดำเนินการ:\n1. คำนวณคะแนนรวมและเกรด (ข้ามช่อง 'รวมบท' ไม่บวกซ้ำ)\n2. ไฮไลท์สีผลการเรียนอัตโนมัติ:\n   🔴 สีแดง = เกรด 0 / ไม่ผ่าน / ร / มส\n   🟡 สีเหลือง = เกรดต่ำกว่า 2.5 (1, 1.5, 2)\n   🟢 สีเขียว = เกรด 2.5 ขึ้นไป");
     } catch(e) {}
     
     return {
       status: "success",
-      message: "ติดตั้งสูตรคะแนนรวมและเกรดสำเร็จใน " + updatedSheets.length + " แผ่นงาน",
+      message: "ติดตั้งสูตรและไฮไลท์สีคะแนนสำเร็จใน " + updatedSheets.length + " แผ่นงาน",
+      updatedSheets: updatedSheets
+    };
+  } catch(err) {
+    try {
+      SpreadsheetApp.getUi().alert("❌ เกิดข้อผิดพลาด: " + err.message);
+    } catch(e) {}
+    return { status: "error", message: err.message };
+  }
+}
+
+/**
+ * ติดตั้งกฎการไฮไลท์สีตามเงื่อนไข (Conditional Formatting Rules)
+ * - เกรด 0, ร, มส หรือ ผลประเมิน "ไม่ผ่าน": ไฮไลท์สีแดง (#fee2e2, ตัวอักษร #991b1b)
+ * - เกรดต่ำกว่า 2.5 (1, 1.5, 2): ไฮไลท์สีเหลืองเตือน (#fef3c7, ตัวอักษร #92400e)
+ * - เกรด 2.5 ขึ้นไป หรือ ผลประเมิน "ผ่าน": ไฮไลท์สีเขียวอ่อน (#d1fae5, ตัวอักษร #065f46)
+ */
+function applyGradeConditionalFormatting(sheet, gradeColIdx, evalColIdx, numRows) {
+  if (!sheet || numRows < 1 || gradeColIdx < 0) return;
+  
+  var gradeColLetter = columnToLetter(gradeColIdx + 1);
+  var gradeRange = sheet.getRange(2, gradeColIdx + 1, numRows, 1);
+  gradeRange.setFontWeight("bold").setHorizontalAlignment("center");
+  
+  var newRulesToAdd = [];
+  
+  // กฎ 1 (สีแดง): เกรด = 0 หรือ ร หรือ มส
+  var ruleGrade0 = SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied('=OR(AND(ISNUMBER(' + gradeColLetter + '2), ' + gradeColLetter + '2=0), ' + gradeColLetter + '2="ร", ' + gradeColLetter + '2="มส")')
+    .setBackground("#fee2e2")
+    .setFontColor("#991b1b")
+    .setRanges([gradeRange])
+    .build();
+  newRulesToAdd.push(ruleGrade0);
+
+  // กฎ 2 (สีเหลือง): เกรดต่ำกว่า 2.5 (ได้แก่ 1, 1.5, 2)
+  var ruleGradeWarning = SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied('=AND(ISNUMBER(' + gradeColLetter + '2), ' + gradeColLetter + '2>0, ' + gradeColLetter + '2<2.5)')
+    .setBackground("#fef3c7")
+    .setFontColor("#92400e")
+    .setRanges([gradeRange])
+    .build();
+  newRulesToAdd.push(ruleGradeWarning);
+
+  // กฎ 3 (สีเขียวอ่อน): เกรดตั้งแต่ 2.5 ขึ้นไป (2.5, 3, 3.5, 4)
+  var ruleGradeGood = SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied('=AND(ISNUMBER(' + gradeColLetter + '2), ' + gradeColLetter + '2>=2.5)')
+    .setBackground("#d1fae5")
+    .setFontColor("#065f46")
+    .setRanges([gradeRange])
+    .build();
+  newRulesToAdd.push(ruleGradeGood);
+
+  // กฎสำหรับคอลัมน์ผลประเมิน (ถ้ามี)
+  if (evalColIdx !== -1 && evalColIdx !== gradeColIdx) {
+    var evalRange = sheet.getRange(2, evalColIdx + 1, numRows, 1);
+    evalRange.setFontWeight("bold").setHorizontalAlignment("center");
+    
+    var ruleEvalFail = SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo("ไม่ผ่าน")
+      .setBackground("#fee2e2")
+      .setFontColor("#991b1b")
+      .setRanges([evalRange])
+      .build();
+    newRulesToAdd.push(ruleEvalFail);
+
+    var ruleEvalPass = SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo("ผ่าน")
+      .setBackground("#d1fae5")
+      .setFontColor("#065f46")
+      .setRanges([evalRange])
+      .build();
+    newRulesToAdd.push(ruleEvalPass);
+  }
+
+  // เคลียร์กฎเดิมในคอลัมน์นี้เพื่อไม่ให้กฎซ้ำซ้อน
+  var currentRules = sheet.getConditionalFormatRules();
+  var finalRules = [];
+  for (var cr = 0; cr < currentRules.length; cr++) {
+    var rRanges = currentRules[cr].getRanges();
+    var isTarget = false;
+    for (var rg = 0; rg < rRanges.length; rg++) {
+      var col = rRanges[rg].getColumn();
+      if (col === gradeColIdx + 1 || (evalColIdx !== -1 && col === evalColIdx + 1)) {
+        isTarget = true;
+        break;
+      }
+    }
+    if (!isTarget) {
+      finalRules.push(currentRules[cr]);
+    }
+  }
+  
+  for (var nr = 0; nr < newRulesToAdd.length; nr++) {
+    finalRules.push(newRulesToAdd[nr]);
+  }
+  
+  sheet.setConditionalFormatRules(finalRules);
+}
+
+/**
+ * ติดตั้งเฉพาะระบบไฮไลท์สีผลการเรียน (แดง 0 / เหลือง < 2.5 / เขียว >= 2.5) ให้ทุกแผ่นงาน
+ */
+function applyGradeHighlightingAllSheetsAPI() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheets = ss.getSheets();
+    var updatedSheets = [];
+    
+    for (var s = 0; s < sheets.length; s++) {
+      var sheet = sheets[s];
+      var sheetName = sheet.getName();
+      if (sheetName === "Config" || sheetName === "Settings" || sheetName === "สรุปผลสัมฤทธิ์" || sheetName === "Sheet1") {
+        continue;
+      }
+      
+      var lastRow = sheet.getLastRow();
+      var lastCol = sheet.getLastColumn();
+      if (lastRow < 2 || lastCol < 1) continue;
+      
+      var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+      var gradeColIdx = headers.indexOf("เกรด");
+      var evalColIdx = headers.indexOf("ผลประเมิน");
+      
+      if (gradeColIdx !== -1) {
+        applyGradeConditionalFormatting(sheet, gradeColIdx, evalColIdx, lastRow - 1);
+        updatedSheets.push(sheetName);
+      }
+    }
+    
+    try {
+      SpreadsheetApp.getUi().alert("✅ ติดตั้งระบบไฮไลท์สีผลการเรียนสำเร็จใน " + updatedSheets.length + " ชีต!\n(" + updatedSheets.join(", ") + ")\n\n🔴 สีแดง: เกรด 0 / ไม่ผ่าน / ร / มส\n🟡 สีเหลือง: เกรดต่ำกว่า 2.5 (1, 1.5, 2)\n🟢 สีเขียว: เกรด 2.5 ขึ้นไป (2.5 - 4.0)");
+    } catch(e) {}
+    
+    return {
+      status: "success",
+      message: "ติดตั้งระบบไฮไลท์สีผลการเรียนสำเร็จใน " + updatedSheets.length + " แผ่นงาน",
       updatedSheets: updatedSheets
     };
   } catch(err) {
