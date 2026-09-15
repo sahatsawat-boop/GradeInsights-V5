@@ -885,13 +885,8 @@
 
       // Tier 1: Group Category Headers
       let groupRowHtml = `<th colspan="2" class="th-group-header th-group-course"><i class="fa-solid fa-book-bookmark"></i> ข้อมูลรายวิชา</th>`;
-      if (scoreHeaders.length > 0) {
-        groupRowHtml += `<th colspan="${scoreHeaders.length}" class="th-group-header th-group-collect"><i class="fa-solid fa-pen-to-square"></i> คะแนนเก็บระหว่างภาค</th>`;
-      }
-      groupRowHtml += `
-        <th colspan="2" class="th-group-header th-group-exam"><i class="fa-solid fa-bullseye"></i> การประเมินผลสอบ</th>
-        <th colspan="3" class="th-group-header th-group-summary"><i class="fa-solid fa-trophy"></i> สรุปผลการเรียน</th>
-      `;
+      const collectColspan = scoreHeaders.length + 1; // ชิ้นงานย่อยทั้งหมด + คะแนนเก็บรวม
+      groupRowHtml += `<th colspan="${collectColspan}" class="th-group-header th-group-collect"><i class="fa-solid fa-pen-to-square"></i> คะแนนเก็บระหว่างภาค</th>`;
 
       // Tier 2: Sub-column Headers
       let subRowHtml = `
@@ -901,13 +896,8 @@
       scoreHeaders.forEach(sh => {
         subRowHtml += `<th class="th-sub th-sub-collect">${escapeHtml(sh)}</th>`;
       });
-      subRowHtml += `
-        <th class="th-sub th-sub-exam">กลางภาค (20)</th>
-        <th class="th-sub th-sub-exam">ปลายภาค (20)</th>
-        <th class="th-sub th-sub-summary">คะแนนรวม (100)</th>
-        <th class="th-sub th-sub-summary">เกรด</th>
-        <th class="th-sub th-sub-summary">ผลประเมิน</th>
-      `;
+      const collectMaxLabel = calc.collectMax > 0 ? ` (${calc.collectMax})` : "";
+      subRowHtml += `<th class="th-sub th-sub-collect-total">คะแนนเก็บรวม${collectMaxLabel}</th>`;
 
       if (reportThead) {
         reportThead.innerHTML = `
@@ -932,6 +922,10 @@
         }
       });
 
+      // เซลล์คะแนนเก็บรวมท้ายตาราง
+      tdHtml += `<td><span class="score-collect-total-chip">${calc.collectTotal}</span></td>`;
+      tableBody.innerHTML = `<tr>${tdHtml}</tr>`;
+
       // Grade Pill Class
       let gradePillClass = "grade-pill-emerald";
       const numGrade = Number(calc.grade);
@@ -943,14 +937,86 @@
 
       const badgeClass = calc.status === "ผ่าน" ? "badge-pass" : "badge-fail";
 
-      tdHtml += `
-        <td>${data.midterm_score !== "" && data.midterm_score !== null ? data.midterm_score : "-"}</td>
-        <td>${data.final_score !== "" && data.final_score !== null ? data.final_score : "-"}</td>
-        <td><span class="score-total-chip">${calc.totalScore}</span></td>
-        <td><span class="grade-pill ${gradePillClass}">${calc.grade}</span></td>
-        <td><span class="badge ${badgeClass}">${calc.status}</span></td>
-      `;
-      tableBody.innerHTML = `<tr>${tdHtml}</tr>`;
+      // Render Exam & Final Evaluation Bento Cards
+      const summaryCardsContainer = document.getElementById("student-exam-summary-cards");
+      if (summaryCardsContainer) {
+        summaryCardsContainer.innerHTML = `
+          <div class="bento-summary-grid">
+            <!-- 1. สอบกลางภาค -->
+            <div class="bento-summary-card">
+              <div class="bento-card-icon exam-midterm-icon">
+                <i class="fa-solid fa-file-lines"></i>
+              </div>
+              <div class="bento-card-info">
+                <span class="bento-card-label">สอบกลางภาค</span>
+                <div class="bento-card-score">
+                  <span class="bento-score-val">${data.midterm_score !== "" && data.midterm_score !== null ? data.midterm_score : "-"}</span>
+                  <span class="bento-score-max">/ 20</span>
+                </div>
+                <span class="bento-card-sub">วัดผลกลางภาคเรียน</span>
+              </div>
+            </div>
+
+            <!-- 2. สอบปลายภาค -->
+            <div class="bento-summary-card">
+              <div class="bento-card-icon exam-final-icon">
+                <i class="fa-solid fa-graduation-cap"></i>
+              </div>
+              <div class="bento-card-info">
+                <span class="bento-card-label">สอบปลายภาค</span>
+                <div class="bento-card-score">
+                  <span class="bento-score-val">${data.final_score !== "" && data.final_score !== null ? data.final_score : "-"}</span>
+                  <span class="bento-score-max">/ 20</span>
+                </div>
+                <span class="bento-card-sub">วัดผลปลายภาคเรียน</span>
+              </div>
+            </div>
+
+            <!-- 3. คะแนนรวมสุทธิ -->
+            <div class="bento-summary-card highlight-card">
+              <div class="bento-card-icon exam-total-icon">
+                <i class="fa-solid fa-calculator"></i>
+              </div>
+              <div class="bento-card-info">
+                <span class="bento-card-label">คะแนนรวมทั้งหมด</span>
+                <div class="bento-card-score">
+                  <span class="bento-score-val score-total-num">${calc.totalScore}</span>
+                  <span class="bento-score-max">/ 100</span>
+                </div>
+                <span class="bento-card-sub">เก็บ (${calc.collectTotal}) + สอบ (${(Number(data.midterm_score || 0) + Number(data.final_score || 0))})</span>
+              </div>
+            </div>
+
+            <!-- 4. ระดับผลการเรียน (เกรด) -->
+            <div class="bento-summary-card grade-card">
+              <div class="bento-card-icon exam-grade-icon">
+                <i class="fa-solid fa-award"></i>
+              </div>
+              <div class="bento-card-info">
+                <span class="bento-card-label">ระดับผลการเรียน</span>
+                <div class="bento-card-score">
+                  <span class="grade-pill ${gradePillClass}" style="font-size: 18px; padding: 3px 14px;">${calc.grade}</span>
+                </div>
+                <span class="bento-card-sub">เกรดเฉลี่ยรายวิชา</span>
+              </div>
+            </div>
+
+            <!-- 5. ผลการตัดสินประเมิน -->
+            <div class="bento-summary-card status-card">
+              <div class="bento-card-icon exam-status-icon">
+                <i class="fa-solid ${calc.status === 'ผ่าน' ? 'fa-circle-check' : 'fa-circle-xmark'}"></i>
+              </div>
+              <div class="bento-card-info">
+                <span class="bento-card-label">ผลการประเมิน</span>
+                <div class="bento-card-score">
+                  <span class="badge ${badgeClass}" style="font-size: 14px; padding: 4px 14px;">${calc.status}</span>
+                </div>
+                <span class="bento-card-sub">${calc.status === 'ผ่าน' ? 'ผ่านเกณฑ์ตามหลักสูตร' : 'ต่ำกว่าเกณฑ์ 50 คะแนน'}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
 
       // Render specific charts
       drawStudentCharts(currentItem);

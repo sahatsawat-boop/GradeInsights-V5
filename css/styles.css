@@ -1857,3 +1857,194 @@
     body.dark-mode #report-grade-gte25-row td {
       color: #34d399 !important;
     }
+
+    /* ============================================================
+       BENTO SUMMARY CARDS (Student Report Exam & Grade Summary)
+       ============================================================ */
+    .student-exam-summary-cards {
+      margin-top: 5px;
+    }
+
+    .bento-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 1024px) {
+      .bento-summary-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .bento-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .bento-summary-grid .bento-summary-card:last-child {
+        grid-column: span 2;
+      }
+    }
+
+    .bento-summary-card {
+      background: var(--card-bg, #ffffff);
+      border: 1px solid var(--card-border, rgba(226, 232, 240, 0.8));
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bento-summary-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+      border-color: rgba(59, 130, 246, 0.4);
+    }
+
+    body.dark-mode .bento-summary-card {
+      background: rgba(30, 41, 59, 0.6);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    body.dark-mode .bento-summary-card:hover {
+      border-color: rgba(96, 165, 250, 0.4);
+    }
+
+    .bento-card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      flex-shrink: 0;
+    }
+
+    .exam-midterm-icon {
+      background: rgba(124, 58, 237, 0.12);
+      color: #7c3aed;
+    }
+
+    .exam-final-icon {
+      background: rgba(99, 102, 241, 0.12);
+      color: #6366f1;
+    }
+
+    .exam-total-icon {
+      background: rgba(14, 165, 233, 0.12);
+      color: #0284c7;
+    }
+
+    .exam-grade-icon {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+    }
+
+    .exam-status-icon {
+      background: rgba(245, 158, 11, 0.12);
+      color: #f59e0b;
+    }
+
+    body.dark-mode .exam-midterm-icon { background: rgba(124, 58, 237, 0.25); color: #c4b5fd; }
+    body.dark-mode .exam-final-icon { background: rgba(99, 102, 241, 0.25); color: #a5b4fc; }
+    body.dark-mode .exam-total-icon { background: rgba(14, 165, 233, 0.25); color: #7dd3fc; }
+    body.dark-mode .exam-grade-icon { background: rgba(16, 185, 129, 0.25); color: #6ee7b7; }
+    body.dark-mode .exam-status-icon { background: rgba(245, 158, 11, 0.25); color: #fcd34d; }
+
+    .bento-card-info {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      min-width: 0;
+    }
+
+    .bento-card-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-bottom: 2px;
+    }
+
+    body.dark-mode .bento-card-label {
+      color: #94a3b8;
+    }
+
+    .bento-card-score {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 2px;
+    }
+
+    .bento-score-val {
+      font-size: 21px;
+      font-weight: 800;
+      color: var(--text-main);
+      line-height: 1.1;
+      letter-spacing: -0.5px;
+    }
+
+    .bento-score-val.score-total-num {
+      color: #0284c7;
+    }
+
+    body.dark-mode .bento-score-val.score-total-num {
+      color: #38bdf8;
+    }
+
+    .bento-score-max {
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .bento-card-sub {
+      font-size: 10.5px;
+      color: #94a3b8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    body.dark-mode .bento-card-sub {
+      color: #64748b;
+    }
+
+    /* Collect Total Column in Top Table */
+    .th-sub-collect-total {
+      background: rgba(59, 130, 246, 0.12) !important;
+      color: #1d4ed8 !important;
+      font-weight: 700 !important;
+      min-width: 110px;
+    }
+
+    body.dark-mode .th-sub-collect-total {
+      background: rgba(59, 130, 246, 0.25) !important;
+      color: #93c5fd !important;
+    }
+
+    .score-collect-total-chip {
+      background: rgba(59, 130, 246, 0.15);
+      color: #1d4ed8;
+      font-weight: 800;
+      padding: 3px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      display: inline-block;
+      font-size: 13px;
+    }
+
+    body.dark-mode .score-collect-total-chip {
+      background: rgba(59, 130, 246, 0.25);
+      color: #bfdbfe;
+      border-color: rgba(59, 130, 246, 0.4);
+    }
