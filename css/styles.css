@@ -690,6 +690,19 @@
       color: var(--text-main);
       line-height: 1.5;
     }
+    .alert-card li.teacher-comment-alert.no-comment {
+      background: rgba(148, 163, 184, 0.05);
+      border: 1px dashed rgba(148, 163, 184, 0.3);
+      border-left: 5px solid #94a3b8;
+    }
+    .teacher-comment-alert.no-comment .teacher-comment-badge {
+      color: #64748b;
+      background: rgba(148, 163, 184, 0.15);
+    }
+    .teacher-comment-alert.no-comment .teacher-comment-content {
+      color: #64748b;
+      font-style: italic;
+    }
 
     /* SCORE TABLE & 2-TIER GROUPED HEADERS */
     .table-container {

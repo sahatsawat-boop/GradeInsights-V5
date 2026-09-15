@@ -810,16 +810,23 @@
       let alertCount = 0;
 
       // Teacher Comment Highlight in Top Alert Box
-      if (data.comment && String(data.comment).trim() !== "" && String(data.comment).trim() !== "-") {
-        const li = document.createElement("li");
-        li.className = "teacher-comment-alert";
-        li.innerHTML = `
+      const hasTeacherComment = data.comment && String(data.comment).trim() !== "" && String(data.comment).trim() !== "-";
+      const commentLi = document.createElement("li");
+      if (hasTeacherComment) {
+        commentLi.className = "teacher-comment-alert";
+        commentLi.innerHTML = `
           <div class="teacher-comment-badge"><i class="fa-solid fa-chalkboard-user"></i> ข้อเสนอแนะจากคุณครูผู้สอน</div>
           <div class="teacher-comment-content">"${escapeHtml(data.comment)}"</div>
         `;
-        alertList.appendChild(li);
-        alertCount++;
+      } else {
+        commentLi.className = "teacher-comment-alert no-comment";
+        commentLi.innerHTML = `
+          <div class="teacher-comment-badge"><i class="fa-solid fa-chalkboard-user"></i> ข้อเสนอแนะจากคุณครูผู้สอน</div>
+          <div class="teacher-comment-content">"ไม่มีข้อคิดเห็นเพิ่มเติมจากครูผู้สอน"</div>
+        `;
       }
+      alertList.appendChild(commentLi);
+      alertCount++;
 
       // Rule A: Failing check
       if (Number(calc.totalScore) < 50) {
@@ -884,7 +891,6 @@
       groupRowHtml += `
         <th colspan="2" class="th-group-header th-group-exam"><i class="fa-solid fa-bullseye"></i> การประเมินผลสอบ</th>
         <th colspan="3" class="th-group-header th-group-summary"><i class="fa-solid fa-trophy"></i> สรุปผลการเรียน</th>
-        <th colspan="1" class="th-group-header th-group-comment"><i class="fa-solid fa-comment-dots"></i> ข้อเสนอแนะ</th>
       `;
 
       // Tier 2: Sub-column Headers
@@ -901,7 +907,6 @@
         <th class="th-sub th-sub-summary">คะแนนรวม (100)</th>
         <th class="th-sub th-sub-summary">เกรด</th>
         <th class="th-sub th-sub-summary">ผลประเมิน</th>
-        <th class="th-sub th-sub-comment text-left">ความเห็นจากคุณครู</th>
       `;
 
       if (reportThead) {
@@ -937,10 +942,6 @@
       else gradePillClass = "grade-pill-danger";
 
       const badgeClass = calc.status === "ผ่าน" ? "badge-pass" : "badge-fail";
-      const hasComment = data.comment && String(data.comment).trim() !== "" && String(data.comment).trim() !== "-";
-      const commentHtml = hasComment
-        ? `<div class="teacher-comment-card"><i class="fa-solid fa-comment-dots"></i> <span>${escapeHtml(data.comment)}</span></div>`
-        : `<span class="text-muted">-</span>`;
 
       tdHtml += `
         <td>${data.midterm_score !== "" && data.midterm_score !== null ? data.midterm_score : "-"}</td>
@@ -948,7 +949,6 @@
         <td><span class="score-total-chip">${calc.totalScore}</span></td>
         <td><span class="grade-pill ${gradePillClass}">${calc.grade}</span></td>
         <td><span class="badge ${badgeClass}">${calc.status}</span></td>
-        <td class="text-left">${commentHtml}</td>
       `;
       tableBody.innerHTML = `<tr>${tdHtml}</tr>`;
 
