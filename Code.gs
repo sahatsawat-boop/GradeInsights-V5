@@ -1072,6 +1072,8 @@ function isSubtotalOrSummaryHeader(headerName) {
   if (h.indexOf("คะแนนรวม") !== -1 || h === "total_score" || h.toLowerCase() === "total") return true;
   if (h === "เกรด" || h.toLowerCase() === "grade") return true;
   if (h === "ผลประเมิน" || h.toLowerCase() === "status" || h.toLowerCase() === "evaluation") return true;
+  if (h === "การอ่าน/คิดวิเคราะห์/เขียน" || h.indexOf("การอ่าน") !== -1 || h.indexOf("คิดวิเคราะห์") !== -1) return true;
+  if (h === "คุณลักษณะอันพึงประสงค์" || h.indexOf("คุณลักษณะ") !== -1) return true;
   
   // ตรวจจับคอลัมน์รวมรายบท/รายหน่วย
   if (h.indexOf("รวมบท") === 0 || h.indexOf("รวมหน่วย") === 0 || h.indexOf("คะแนนรวมบท") === 0 || h.indexOf("คะแนนรวมหน่วย") === 0 || h.toLowerCase().indexOf("subtotal") !== -1) {
@@ -1121,10 +1123,14 @@ function setupAllSheetsFormulasAPI() {
       var totalColName = "คะแนนรวม (100)";
       var gradeColName = "เกรด";
       var evalColName = "ผลประเมิน";
+      var readingColName = "การอ่าน/คิดวิเคราะห์/เขียน";
+      var charColName = "คุณลักษณะอันพึงประสงค์";
       
       var totalColIdx = headers.indexOf(totalColName);
       var gradeColIdx = headers.indexOf(gradeColName);
       var evalColIdx = headers.indexOf(evalColName);
+      var readingColIdx = headers.indexOf(readingColName);
+      var charColIdx = headers.indexOf(charColName);
       var commentIdx = headers.indexOf("comment");
       
       // ถ้ายังไม่มีคอลัมน์ผลสรุป ให้แทรกก่อนหน้าคอลัมน์ comment (หรือต่อท้าย)
@@ -1166,6 +1172,32 @@ function setupAllSheetsFormulasAPI() {
         evalColIdx = headers.indexOf(evalColName);
       }
       
+      if (readingColIdx === -1) {
+        commentIdx = headers.indexOf("comment");
+        if (commentIdx !== -1) {
+          sheet.insertColumnBefore(commentIdx + 1);
+          sheet.getRange(1, commentIdx + 1).setValue(readingColName);
+        } else {
+          sheet.getRange(1, lastCol + 1).setValue(readingColName);
+        }
+        lastCol = sheet.getLastColumn();
+        headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+        readingColIdx = headers.indexOf(readingColName);
+      }
+      
+      if (charColIdx === -1) {
+        commentIdx = headers.indexOf("comment");
+        if (commentIdx !== -1) {
+          sheet.insertColumnBefore(commentIdx + 1);
+          sheet.getRange(1, commentIdx + 1).setValue(charColName);
+        } else {
+          sheet.getRange(1, lastCol + 1).setValue(charColName);
+        }
+        lastCol = sheet.getLastColumn();
+        headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+        charColIdx = headers.indexOf(charColName);
+      }
+      
       // ค้นหาคอลัมน์คะแนนจริง (งานย่อย + กลางภาค + ปลายภาค) โดยข้ามคอลัมน์ "รวมบท..."
       var scoreColIndices = [];
       for (var c = 0; c < headers.length; c++) {
@@ -1183,6 +1215,8 @@ function setupAllSheetsFormulasAPI() {
         var totalFormulas = [];
         var gradeFormulas = [];
         var evalFormulas = [];
+        var readingFormulas = [];
+        var charFormulas = [];
         
         var totalColLetter = columnToLetter(totalColIdx + 1);
         var gradeColLetter = columnToLetter(gradeColIdx + 1);
@@ -1204,13 +1238,22 @@ function setupAllSheetsFormulasAPI() {
           var gCell = gradeColLetter + r;
           var evalFormula = '=IF(ISBLANK(' + gCell + '), "", IF(' + gCell + '>=1, "ผ่าน", "ไม่ผ่าน"))';
           evalFormulas.push([evalFormula]);
+          
+          // ตัดผลการอ่าน/คิดวิเคราะห์/เขียน และ คุณลักษณะอันพึงประสงค์ (ระดับ 3, 2, 1) อัตโนมัติจากเกรด
+          var eval321Formula = '=IF(ISBLANK(' + gCell + '), "", IF(OR(' + gCell + '="ร", ' + gCell + '="มส", ' + gCell + '=0), 1, IF(' + gCell + '>=3, 3, IF(' + gCell + '>=1, 2, 1))))';
+          readingFormulas.push([eval321Formula]);
+          charFormulas.push([eval321Formula]);
         }
         
         sheet.getRange(2, totalColIdx + 1, numRows, 1).setFormulas(totalFormulas);
         sheet.getRange(2, gradeColIdx + 1, numRows, 1).setFormulas(gradeFormulas);
         sheet.getRange(2, evalColIdx + 1, numRows, 1).setFormulas(evalFormulas);
+        sheet.getRange(2, readingColIdx + 1, numRows, 1).setFormulas(readingFormulas);
+        sheet.getRange(2, charColIdx + 1, numRows, 1).setFormulas(charFormulas);
         
         sheet.getRange(2, totalColIdx + 1, numRows, 1).setHorizontalAlignment("center");
+        sheet.getRange(2, readingColIdx + 1, numRows, 1).setHorizontalAlignment("center");
+        sheet.getRange(2, charColIdx + 1, numRows, 1).setHorizontalAlignment("center");
         
         // ติดตั้งไฮไลท์สีตามเงื่อนไข (แดง 0 / เหลือง < 2.5 / เขียว >= 2.5) อัตโนมัติ
         applyGradeConditionalFormatting(sheet, gradeColIdx, evalColIdx, numRows);
@@ -1220,6 +1263,8 @@ function setupAllSheetsFormulasAPI() {
       sheet.getRange(1, totalColIdx + 1).setFontWeight("bold").setBackground("#e0f2fe").setHorizontalAlignment("center");
       sheet.getRange(1, gradeColIdx + 1).setFontWeight("bold").setBackground("#d1fae5").setHorizontalAlignment("center");
       sheet.getRange(1, evalColIdx + 1).setFontWeight("bold").setBackground("#d1fae5").setHorizontalAlignment("center");
+      sheet.getRange(1, readingColIdx + 1).setFontWeight("bold").setBackground("#ede9fe").setHorizontalAlignment("center");
+      sheet.getRange(1, charColIdx + 1).setFontWeight("bold").setBackground("#ede9fe").setHorizontalAlignment("center");
       
       updatedSheets.push(sheetName);
     }

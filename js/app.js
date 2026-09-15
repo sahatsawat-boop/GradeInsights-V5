@@ -1067,6 +1067,26 @@
         }
       }
 
+      // Automatic Evaluation: Reading/Thinking/Writing & Desirable Characteristics
+      let readingEval = (studentRow["การอ่าน/คิดวิเคราะห์/เขียน"] !== undefined && studentRow["การอ่าน/คิดวิเคราะห์/เขียน"] !== null && String(studentRow["การอ่าน/คิดวิเคราะห์/เขียน"]).trim() !== "")
+        ? String(studentRow["การอ่าน/คิดวิเคราะห์/เขียน"]).trim()
+        : null;
+      let charEval = (studentRow["คุณลักษณะอันพึงประสงค์"] !== undefined && studentRow["คุณลักษณะอันพึงประสงค์"] !== null && String(studentRow["คุณลักษณะอันพึงประสงค์"]).trim() !== "")
+        ? String(studentRow["คุณลักษณะอันพึงประสงค์"]).trim()
+        : null;
+
+      const isR = String(studentRow.midterm_score).trim() === "ร" || String(studentRow.final_score).trim() === "ร";
+      const isMS = String(studentRow.midterm_score).trim() === "มส" || String(studentRow.final_score).trim() === "มส";
+      let autoEval = "1";
+      if (!isR && !isMS) {
+        if (grade >= 3) autoEval = "3";
+        else if (grade >= 1) autoEval = "2";
+        else autoEval = "1";
+      }
+
+      if (!readingEval) readingEval = autoEval;
+      if (!charEval) charEval = autoEval;
+
       return {
         collectTotal: collectTotal.toFixed(1),
         collectMax: collectMax,
@@ -1075,7 +1095,9 @@
         grade: grade,
         status: totalScore >= 50 ? "ผ่าน" : "ไม่ผ่าน",
         neededForNextGrade: neededForNextGrade,
-        nextGrade: nextGrade
+        nextGrade: nextGrade,
+        readingEval: readingEval,
+        charEval: charEval
       };
     }
 
@@ -1090,6 +1112,8 @@
         if (s.includes("คะแนนรวม") || s === "total_score" || s.toLowerCase() === "total") return false;
         if (s === "เกรด" || s.toLowerCase() === "grade") return false;
         if (s === "ผลประเมิน" || s.toLowerCase() === "status" || s.toLowerCase() === "evaluation") return false;
+        if (s === "การอ่าน/คิดวิเคราะห์/เขียน" || s.includes("การอ่าน") || s.includes("คิดวิเคราะห์")) return false;
+        if (s === "คุณลักษณะอันพึงประสงค์" || s.includes("คุณลักษณะ")) return false;
         
         // กรองข้ามคอลัมน์รวมรายบท/รายหน่วย (Anti-Double Counting)
         // แสดงเฉพาะใน Google Sheets เท่านั้น ไม่นำมาบวกทบซ้ำ และไม่แสดงซ้ำซ้อนในตารางหน้าเว็บ
@@ -1710,6 +1734,8 @@
         <th>ปลายภาค (20)</th>
         <th>รวม (100)</th>
         <th>เกรด</th>
+        <th style="background: rgba(139, 92, 246, 0.08); color: #7c3aed; font-weight: 700;" title="การอ่าน/คิดวิเคราะห์/เขียน (ระดับ 3, 2, 1, 0)">การอ่านฯ</th>
+        <th style="background: rgba(139, 92, 246, 0.08); color: #7c3aed; font-weight: 700;" title="คุณลักษณะอันพึงประสงค์ (ระดับ 3, 2, 1, 0)">คุณลักษณะฯ</th>
         <th>ความเห็น</th>
         <th class="no-print">จัดการ</th>
       `;
@@ -1771,6 +1797,12 @@
           <td class="font-bold text-primary">${calc.totalScore}</td>
           <td class="font-bold" style="text-align: center;">
             <span style="${(calc.grade === 'ร' || calc.grade === 'มส' || Number(calc.grade) === 0 || calc.status === 'ไม่ผ่าน') ? 'background: #fee2e2; color: #991b1b; padding: 3px 10px; border-radius: 6px; font-weight: 700; display: inline-block;' : (Number(calc.grade) < 2.5 ? 'background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 6px; font-weight: 700; display: inline-block;' : 'background: #d1fae5; color: #065f46; padding: 3px 10px; border-radius: 6px; font-weight: 700; display: inline-block;')}">${calc.grade}</span>
+          </td>
+          <td class="cell-editable" data-student-id="${st.student_id}" data-key="การอ่าน/คิดวิเคราะห์/เขียน" onclick="makeCellEditable(this, '${st.student_id}', '${st.subject_code}', 'การอ่าน/คิดวิเคราะห์/เขียน', 'eval')" style="text-align: center;" title="คลิกเพื่อแก้ไขการอ่านฯ (3, 2, 1, 0)">
+            <span class="eval-badge eval-badge-${calc.readingEval}">${calc.readingEval}</span>
+          </td>
+          <td class="cell-editable" data-student-id="${st.student_id}" data-key="คุณลักษณะอันพึงประสงค์" onclick="makeCellEditable(this, '${st.student_id}', '${st.subject_code}', 'คุณลักษณะอันพึงประสงค์', 'eval')" style="text-align: center;" title="คลิกเพื่อแก้ไขคุณลักษณะฯ (3, 2, 1, 0)">
+            <span class="eval-badge eval-badge-${calc.charEval}">${calc.charEval}</span>
           </td>
           <td class="cell-editable text-left small" data-student-id="${st.student_id}" data-key="comment" onclick="makeCellEditable(this, '${st.student_id}', '${st.subject_code}', 'comment', 'text')">
             ${st.comment || "-"}
@@ -2059,6 +2091,13 @@
         input.type = "number";
         input.min = 1;
         input.style.textAlign = "center";
+      } else if (typeOrMax === 'eval') {
+        input.type = "number";
+        input.min = 0;
+        input.max = 3;
+        input.step = 1;
+        input.style.textAlign = "center";
+        input.style.width = "48px";
       } else {
         input.type = "number";
         input.min = 0;
@@ -2077,7 +2116,14 @@
         
         let newVal = input.value.trim();
         
-        if (typeOrMax !== 'text' && typeOrMax !== 'number-free') {
+        if (typeOrMax === 'eval') {
+          if (newVal === "") {
+            newVal = "";
+          } else {
+            const num = parseInt(newVal);
+            newVal = (num >= 0 && num <= 3) ? String(num) : "1";
+          }
+        } else if (typeOrMax !== 'text' && typeOrMax !== 'number-free') {
           if (newVal === "") {
             newVal = "";
           } else {
@@ -2708,28 +2754,15 @@
         const evalCharacterCounts = { "3": 0, "2": 0, "1": 0, "0": 0 };
 
         students.forEach(st => {
-          const isR = String(st.midterm_score).trim() === "ร" || String(st.final_score).trim() === "ร";
-          const isMS = String(st.midterm_score).trim() === "มส" || String(st.final_score).trim() === "มส";
+          const calc = calculateScoresAndGrades(st, headers);
+          const rVal = (calc.readingEval !== undefined && calc.readingEval !== null && ["3", "2", "1", "0"].includes(String(calc.readingEval))) ? String(calc.readingEval) : "1";
+          const cVal = (calc.charEval !== undefined && calc.charEval !== null && ["3", "2", "1", "0"].includes(String(calc.charEval))) ? String(calc.charEval) : "1";
           
-          let evalVal = "1"; // Default for 0, ร, มส
+          evalReadingCounts[rVal]++;
+          grandEvalReadingCounts[rVal]++;
           
-          if (!isR && !isMS) {
-            const calc = calculateScoresAndGrades(st, headers);
-            const g = Number(calc.grade); // 4, 3.5, 3, 2.5, 2, 1.5, 1, 0
-            if (g >= 3) {
-              evalVal = "3";
-            } else if (g >= 1) {
-              evalVal = "2";
-            } else {
-              evalVal = "1";
-            }
-          }
-          
-          evalReadingCounts[evalVal]++;
-          grandEvalReadingCounts[evalVal]++;
-          
-          evalCharacterCounts[evalVal]++;
-          grandEvalCharacterCounts[evalVal]++;
+          evalCharacterCounts[cVal]++;
+          grandEvalCharacterCounts[cVal]++;
         });
 
         // Add to rows array
@@ -3121,6 +3154,8 @@
         <th style="width: 80px; min-width: 70px; font-size: 0.95em;">ปลายภาค (20)</th>
         <th style="width: 70px; min-width: 60px;">รวม 100</th>
         <th style="width: 60px; min-width: 50px;">เกรด</th>
+        <th style="width: 55px; min-width: 45px; font-size: 0.85em;">อ่านฯ</th>
+        <th style="width: 55px; min-width: 45px; font-size: 0.85em;">คุณลักษณะฯ</th>
       `;
 
       // Build table body
@@ -3145,6 +3180,8 @@
             <td>${st.final_score !== undefined && st.final_score !== null && st.final_score !== "" ? st.final_score : "-"}</td>
             <td style="font-weight: bold;">${calc.totalScore}</td>
             <td style="font-weight: bold; color: #15803d;">${calc.grade}</td>
+            <td style="font-weight: 600; text-align: center;">${calc.readingEval}</td>
+            <td style="font-weight: 600; text-align: center;">${calc.charEval}</td>
           </tr>
         `;
         bodyHtml += rowHtml;
